@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { langOf, t } from "../src/i18n.ts";
 
 const LANGS = ["en", "ru", "es", "pt", "id", "de", "tr", "uk", "fa", "ar", "hi"];
-const KEYS = ["start", "help", "writeMessagePrompt", "rateLimited", "replyLimited", "tooLong", "proThanks", "prompts"];
+const KEYS = ["start", "help", "writeMessagePrompt", "rateLimited", "replyLimited", "tooLong", "proThanks", "prompts", "guestPitch", "guestGroupPitch"];
 
 test("langOf falls back to en for missing, unknown, or region-tagged codes", () => {
   assert.equal(langOf(undefined), "en");

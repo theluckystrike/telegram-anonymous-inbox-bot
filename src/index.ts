@@ -4,6 +4,8 @@ import { Store } from "./db.ts";
 import { APP_HTML, buildShareText, validateInitData } from "./webapp.ts";
 import { isRealSender, isSourcePayload, publicCard, storyText } from "./logic.ts";
 import { langOf, t } from "./i18n.ts";
+import { GuestReply, isGuestGroup, wireGuest, wireInline } from "./guest.ts";
+import { buildGuestGroupReply, buildGuestReply } from "./guestReply.ts";
 export { Store };
 
 const MORE_TEXT = "More free tools by the same maker:\n🔒 @WhisperLockBot — locked messages only one person can open\n⏰ @NudgeRemindBot — reminders that arrive on time\n📮 @AnonInboxProBot — anonymous inbox via your link\n🧾 @SplitTabsBot — split group expenses\n🔥 @HabitStreakProBot — habit streaks with daily check-ins";
@@ -152,6 +154,31 @@ async function onHint(ctx: Context, env: Env, id: number): Promise<void> {
 }
 const countFrom = (env: Env, m: { owner_id: number; sender_id: number }): Promise<number> => store(env).countFrom(m.owner_id, m.sender_id);
 
+/** Static copy for a guest chat, with the Markdown the i18n table carries stripped: guest
+ * results are posted as plain text (the query is user-supplied and may contain _ or *). */
+const plain = (s: string): string => s.replaceAll("*", "").replaceAll("`", "");
+
+/** Guest Mode: someone @-mentioned us in a chat we were never added to. AnonInbox's whole
+ * product is a personal link, so if the summoning sender already has one (a real /start,
+ * looked up read-only — Guest Mode must never create a `users` row for a guest) we hand
+ * it back to them; otherwise the localized pitch. See guestReply.ts for the pure part.
+ *
+ * A group/supergroup is a room full of strangers, not the summoner: the personal link and
+ * the DM-framed "start" copy ("Messages land right here") are both wrong there, so a group
+ * always gets the generic, group-appropriate pitch — never the owner's own link. */
+async function onGuest(ctx: Context, env: Env): Promise<GuestReply> {
+  const from = ctx.from;
+  const lang = langOf(from?.language_code);
+  if (isGuestGroup(ctx.chat?.type ?? "")) {
+    return buildGuestGroupReply(BOT, plain(t(lang, "guestGroupPitch")));
+  }
+  const owner = from ? await store(env).getUser(from.id) : null;
+  const knownLink = owner ? link(owner.id) : null;
+  const personalized = owner ? plain(t(lang, "start", { link: link(owner.id) })) : "";
+  const generic = plain(t(lang, "guestPitch"));
+  return buildGuestReply(BOT, knownLink, personalized, generic);
+}
+
 function buildBot(env: Env): Bot {
   const bot = new Bot(env.BOT_TOKEN);
   // Real-sender guard: only real messages (never channel posts), never the anonymous-admin
@@ -208,6 +235,29 @@ function buildBot(env: Env): Bot {
   });
   bot.callbackQuery("mine", async (ctx) => { await ctx.answerCallbackQuery(); await sendOwnerCard(ctx, ctx.from.id, langOf(ctx.from.language_code)); });
   bot.on("message:text", (ctx) => onText(ctx, env));
+  wireGuest(bot, {
+    botUsername: BOT,
+    reply: (ctx) => onGuest(ctx, env),
+    // `guest` is NOT written to `sources` here (REVIEW-GUEST F3): a summoner is not an
+    // installer. src_guest is earned later, through the ?start=guest deep link in the
+    // buttons below. recordGuest self-limits; `flood` downgrades us to the cheap pitch.
+    record: async (uid, chatType, chatId) => {
+      const r = await store(env).recordGuest(uid, chatType, chatId);
+      if (r.recorded) await store(env).track(uid, "guest");
+      return !r.flood;
+    },
+  });
+  // Classic inline mode: the SAME reply builder, answered as an inline result. A user types
+  // "@Bot query" in any chat on any client and posts the card with `via @Bot` attribution —
+  // no admin, no membership, no Guest Chat Mode toggle. The destination chat is unknown, so
+  // the card carries private-style buttons only. Counted under `inline_queries`; `sources` is
+  // never written here (an inline user is not an installer, same rule as the guest path).
+  wireInline(bot, {
+    botUsername: BOT,
+    reply: (ctx) => onGuest(ctx, env),
+    record: async (uid) => !(await store(env).recordInline(uid)).flood,
+    chosen: (uid) => store(env).recordInlineChosen(uid),
+  });
   return bot;
 }
 
