@@ -71,13 +71,13 @@ export class Store extends BaseStore {
     return (this.one<{ answer: string }>("SELECT answer FROM answers WHERE msg_id = ?1", msgId))?.answer ?? null;
   }
   async stats(): Promise<FleetStats> {
-    const m = this.one<{ n: number; r: number | null }>("SELECT COUNT(*) AS n, SUM(replied) AS r FROM messages WHERE NOT (sender_id BETWEEN 900000000 AND 900999999)");
-    const l = this.one<{ n: number }>("SELECT COUNT(*) AS n FROM link_opens WHERE NOT (visitor_id BETWEEN 900000000 AND 900999999)");
-    const sr = this.all<{ src: string; n: number }>("SELECT src, COUNT(*) AS n FROM sources WHERE NOT (user_id BETWEEN 900000000 AND 900999999) GROUP BY src");
+    const m = this.one<{ n: number; r: number | null }>(`SELECT COUNT(*) AS n, SUM(replied) AS r FROM messages WHERE ${this.notTestUser("sender_id")}`);
+    const l = this.one<{ n: number }>(`SELECT COUNT(*) AS n FROM link_opens WHERE ${this.notTestUser("visitor_id")}`);
+    const sr = this.all<{ src: string; n: number }>(`SELECT src, COUNT(*) AS n FROM sources WHERE ${this.notTestUser("user_id")} GROUP BY src`);
     const s: Record<string, number> = {};
     for (const r of sr) s["src_" + r.src] = r.n;
     const pa = this.one<{ n: number }>(
-      "SELECT COUNT(*) AS n FROM answers a JOIN messages m ON m.id = a.msg_id WHERE NOT (m.owner_id BETWEEN 900000000 AND 900999999)");
+      `SELECT COUNT(*) AS n FROM answers a JOIN messages m ON m.id = a.msg_id WHERE ${this.notTestUser("m.owner_id")}`);
     return { ...this.userStats(), ...s, events: m?.n ?? 0, replies: m?.r ?? 0, link_opens: l?.n ?? 0, public_answers: pa?.n ?? 0 };
   }
 }
