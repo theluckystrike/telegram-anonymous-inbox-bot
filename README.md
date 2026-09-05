@@ -1,6 +1,6 @@
 # AnonInboxProBot — anonymous inbox bot for Telegram
 
-**Try it:** [@AnonInboxProBot](https://t.me/AnonInboxProBot) · [tg.zovo.one/bots/anon/](https://tg.zovo.one/bots/anon/)
+**Try it:** [@AnonInboxProBot](https://t.me/AnonInboxProBot?start=github) · [tg.zovo.one/bots/anon/](https://tg.zovo.one/bots/anon/)
 
 ## What it does
 
