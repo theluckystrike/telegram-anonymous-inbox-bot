@@ -1,5 +1,6 @@
 {
   "name": "anoninbox-bot",
+  "repository": {"type": "git", "url": "theluckystrike/telegram-anonymous-inbox-bot.git"},
   "private": true,
   "type": "module",
   "scripts": {
