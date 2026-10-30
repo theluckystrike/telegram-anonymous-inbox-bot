@@ -2,6 +2,12 @@
 
 **Try it:** [@AnonInboxProBot](https://t.me/AnonInboxProBot?start=github) · [tg.zovo.one/bots/anon/](https://tg.zovo.one/bots/anon/)
 
+## 50 Star pass for 30 days
+
+`/pro` now offers a 30 day pass for 50 Stars. You pay once and it does not renew. The pass unlocks unlimited replies and sender hints.
+
+[Start with @AnonInboxProBot](https://t.me/AnonInboxProBot?start=github)
+
 ## What it does
 
 AnonInboxProBot gives you a personal t.me link you can share anywhere. Anyone who opens it and sends a message reaches your Telegram inbox without either side seeing the other's identity. You reply through the bot's Reply button and it forwards your answer back anonymously. If a message gets abusive, Block silently stops that sender from reaching you again. Senders are capped at 1,000 characters and 20 messages per hour to limit abuse. Free tier: 3 replies a day. Pro adds unlimited replies and sender hints.
